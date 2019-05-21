@@ -16,35 +16,43 @@ namespace BlockMonitor
     {
         public static string HttpPost(string Url, string postData, List<HttpHeader> HttpHeaders = null, int timeOut = 5000)
         {
-            WebRequest request = WebRequest.Create(Url);
-            request.Method = "POST";
-            request.ContentType = "application/x-www-form-urlencoded";
-            byte[] byteArray = Encoding.UTF8.GetBytes(postData);
-            request.ContentLength = byteArray.Length;
-            request.Timeout = timeOut;
-            if (HttpHeaders != null && HttpHeaders.Count > 0)
+            try
             {
-                foreach (var item in HttpHeaders)
+                WebRequest request = WebRequest.Create(Url);
+                request.Method = "POST";
+                request.ContentType = "application/x-www-form-urlencoded";
+                byte[] byteArray = Encoding.UTF8.GetBytes(postData);
+                request.ContentLength = byteArray.Length;
+                request.Timeout = timeOut;
+                if (HttpHeaders != null && HttpHeaders.Count > 0)
                 {
-                    switch (item.Name)
+                    foreach (var item in HttpHeaders)
                     {
-                        case "Accept": break;
-                        case "Content-Type": request.ContentType = item.Value; break;
-                        default: request.Headers.Add(item.Name, item.Value); break;
+                        switch (item.Name)
+                        {
+                            case "Accept": break;
+                            case "Content-Type": request.ContentType = item.Value; break;
+                            default: request.Headers.Add(item.Name, item.Value); break;
+                        }
                     }
                 }
+                Stream dataStream = request.GetRequestStream();
+                dataStream.Write(byteArray, 0, byteArray.Length);
+                dataStream.Close();
+                WebResponse response = request.GetResponse();
+                dataStream = response.GetResponseStream();
+                StreamReader reader = new StreamReader(dataStream);
+                string responseFromServer = reader.ReadToEnd();
+                reader.Close();
+                dataStream.Close();
+                response.Close();
+                return responseFromServer;
             }
-            Stream dataStream = request.GetRequestStream();
-            dataStream.Write(byteArray, 0, byteArray.Length);
-            dataStream.Close();
-            WebResponse response = request.GetResponse();
-            dataStream = response.GetResponseStream();
-            StreamReader reader = new StreamReader(dataStream);
-            string responseFromServer = reader.ReadToEnd();
-            reader.Close();
-            dataStream.Close();
-            response.Close();
-            return responseFromServer;
+            catch (Exception e)
+            {
+                Log("HttpPost Exception: " + e.Message);
+                return null;
+            }
         }
 
         public static void SendMail(string to, string from, string subject, string body, int times = 1)
@@ -87,7 +95,7 @@ namespace BlockMonitor
                         }
                         catch (SmtpException e)
                         {
-                            Console.WriteLine("Error Tools 073: " + e.Message);
+                            Log("Error Tools 090: " + e.Message);
                             if (times <= 3)
                                 SendMail(to, from, subject, body, ++times);
                         }
@@ -96,7 +104,7 @@ namespace BlockMonitor
             }
             catch (Exception e)
             {
-                Console.WriteLine("Error Tools 082: " + e.Message);
+                Log("Error Tools 099: " + e.Message);
             }
         }
 
@@ -129,12 +137,20 @@ namespace BlockMonitor
 
             var body = $"{{'mediaName':'warning.wav','to':'{call}','appId':'{appId}'}}";
             var response = HttpPost(url, body, headers);
+            if (response == null) return;
             var xml = new XmlDocument();
             xml.LoadXml(response);
-            var statusCode = xml.SelectSingleNode("Response").SelectSingleNode("statusCode").InnerText;
+            var responseBody = xml.SelectSingleNode("Response");
+            var statusCode = responseBody.SelectSingleNode("statusCode").InnerText;
+            var callSid = responseBody.SelectSingleNode("LandingCall").SelectSingleNode("callSid").InnerText;
+            var orderid = responseBody.SelectSingleNode("LandingCall").SelectSingleNode("orderId").InnerText;
             if (statusCode == "000000")
             {
-                Console.WriteLine($"{call}呼叫成功");
+                Log($"{call} 呼叫成功\r\nstatusCode:{statusCode}\r\ncallSid:{callSid}\r\norderid:{orderid}");
+            }
+            else
+            {
+                Log($"呼叫失败\r\ncall:{{call}}\r\nstatusCode:{statusCode}\r\ncallSid:{callSid}\r\norderid:{orderid}");
             }
         }
 
@@ -173,6 +189,11 @@ namespace BlockMonitor
         {
             textbox1.AppendText(text.EndsWith("\n") ? text : text + "\n");
             textbox1.ScrollToEnd();
+        }
+
+        public static void Log(string msg)
+        {
+            File.AppendAllText("log.txt", DateTime.Now + "\t" + msg + "\r\n");
         }
     }
 
