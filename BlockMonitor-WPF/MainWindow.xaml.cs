@@ -105,16 +105,17 @@ namespace BlockMonitor
 
         private void Start_Click(object sender, RoutedEventArgs e)
         {
-            t.Start();
-            Task.Run(() => {
-                Dispatcher.BeginInvoke(new Action(() => {
-                    StartMenu.IsEnabled = false;
-                }));
-                LoadSeedNodes();
-                GetNodesBlockCount();
-                Status.BlockCount = Status.HeightList.Max(p => p.BlockCount);
-                Status.Time = DateTime.Now;
-            });
+            //t.Start();
+            //Task.Run(() => {
+            //    Dispatcher.BeginInvoke(new Action(() => {
+            //        StartMenu.IsEnabled = false;
+            //    }));
+            //    LoadSeedNodes();
+            //    GetNodesBlockCount();
+            //    Status.BlockCount = Status.HeightList.Max(p => p.BlockCount);
+            //    Status.Time = DateTime.Now;
+            //});
+            Tools.Call();
         }
     }
 }
