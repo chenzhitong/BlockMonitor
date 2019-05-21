@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2020
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.452
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlockMonitor", "BlockMonitor-WPF\BlockMonitor.csproj", "{48C1D200-B500-4EFE-B3C6-8DCF9AF9ECF0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlockMonitorWPF", "BlockMonitorWPF\BlockMonitorWPF.csproj", "{48C1D200-B500-4EFE-B3C6-8DCF9AF9ECF0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlockMonitorConsole", "BlockMonitor\BlockMonitorConsole.csproj", "{6171F521-5DC2-4610-AEF3-B426244FC2FC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlockMonitorConsole", "BlockMonitorConsole\BlockMonitorConsole.csproj", "{6171F521-5DC2-4610-AEF3-B426244FC2FC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
