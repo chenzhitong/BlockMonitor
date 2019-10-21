@@ -14,14 +14,16 @@ namespace BlockMonitor
         static void Main(string[] args)
         {
             Console.WriteLine("开始监控");
-            Timer t = new Timer(new TimeSpan(0, 5, 0).TotalMilliseconds);
-            t.Elapsed += T_Elapsed;
-            t.Start();
-            T_Elapsed(null, null);
+            using (Timer t = new Timer(new TimeSpan(0, 5, 0).TotalMilliseconds))
+            {
+                t.Elapsed += Elapsed;
+                t.Start();
+            }
+            Elapsed(null, null);
             Console.ReadLine();
         }
 
-        private static void T_Elapsed(object sender, ElapsedEventArgs e)
+        private static void Elapsed(object sender, ElapsedEventArgs e)
         {
             Status.HeightList.Clear();
             var config = JObject.Parse(File.ReadAllText("config.json"));
@@ -34,39 +36,12 @@ namespace BlockMonitor
             }
             int height = Status.HeightList.Max();
 
-            if (Status.BlockCount > 0)
+            if (Status.BlockCount > 0 && height == Status.BlockCount)
             {
-                if (height == Status.BlockCount)
-                {
-                    var msg = $"NEO停止出块，超过{Math.Round((DateTime.Now - Status.Time).TotalMinutes)}分钟未出块";
-                    Console.WriteLine($"{msg}, { DateTime.Now.ToString()}");
-                    Tools.SendMail(msg, "NEO停止出块❗❗❗");
-                    Tools.Call();
-                    return;
-                }
-
-                var timeSpan = Math.Round((DateTime.Now - Status.Time).TotalSeconds / (height - Status.BlockCount), 1);
-
-                if (timeSpan >= 35 && timeSpan < 300)
-                {
-                    var msg = $"NEO出块变慢，最近5分钟平均出块时间为{timeSpan}秒。<br />PS：异常区间：{Status.BlockCount}~{height}。";
-                    Console.WriteLine($"{msg.Replace("<br />", "\n")}, { DateTime.Now.ToString()}");
-                    Tools.SendMail(msg, "NEO出块变慢❗");
-                    Status.BlockCount = height;
-                    Status.Time = DateTime.Now;
-                }
-                else
-                {
-                    Console.WriteLine($"出块正常，平均出块时间{timeSpan}秒 {height}, {DateTime.Now.ToString()}");
-                    Status.BlockCount = height;
-                    Status.Time = DateTime.Now;
-                }
-            }
-            else
-            {
-                Status.BlockCount = height;
-                Status.Time = DateTime.Now;
-                Console.WriteLine($"出块正常 {height}, {DateTime.Now.ToString()}");
+                var msg = $"neowish 停止运行 {Math.Round((DateTime.Now - Status.Time).TotalMinutes)} 分钟";
+                Console.WriteLine($"{msg}, { DateTime.Now.ToString()}");
+                Tools.SendMail(msg, "neowish 停止运行❗❗❗");
+                return;
             }
         }        
     }
