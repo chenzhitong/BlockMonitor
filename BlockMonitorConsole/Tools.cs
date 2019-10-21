@@ -47,42 +47,35 @@ namespace BlockMonitor
 
         public static void SendMail(string to, string subject, string body)
         {
+            var config = JObject.Parse(File.ReadAllText("config.json"));
+            using MailMessage mail = new MailMessage
+            {
+                From = new MailAddress(config["email"]["username"].ToString(), config["email"]["from"].ToString()),
+                Subject = subject,
+                BodyEncoding = Encoding.UTF8,
+                Body = body,
+                IsBodyHtml = true
+            };
+            mail.To.Add(to);
+
+            using SmtpClient smtp = new SmtpClient("smtp.office365.com", 587)
+            {
+                EnableSsl = true,
+                UseDefaultCredentials = true,
+
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                Credentials = new NetworkCredential(
+                config["email"]["username"].ToString(),
+                config["email"]["password"].ToString())
+            };
+
             try
             {
-                var config = JObject.Parse(File.ReadAllText("config.json"));
-                using MailMessage mail = new MailMessage
-                {
-                    From = new MailAddress(config["email"]["username"].ToString(), config["email"]["from"].ToString()),
-                    Subject = subject,
-                    BodyEncoding = Encoding.UTF8,
-                    Body = body,
-                    IsBodyHtml = true
-                };
-                mail.To.Add(to);
-
-                using SmtpClient smtp = new SmtpClient("smtp.office365.com", 587)
-                {
-                    EnableSsl = true,
-                    UseDefaultCredentials = true,
-
-                    DeliveryMethod = SmtpDeliveryMethod.Network,
-                    Credentials = new NetworkCredential(
-                    config["email"]["username"].ToString(),
-                    config["email"]["password"].ToString())
-                };
-
-                try
-                {
-                    smtp.Send(mail);
-                }
-                catch (SmtpException e)
-                {
-                    Console.WriteLine("SmtpException" + e.Message);
-                }
+                smtp.Send(mail);
             }
-            catch (Exception e)
+            catch (SmtpException e)
             {
-                Console.WriteLine("Error: " + e.Message);
+                Console.WriteLine("SmtpException" + e.Message);
             }
         }
 
@@ -99,13 +92,6 @@ namespace BlockMonitor
                 return 0;
             }
 
-        }
-        public static string MD5Encrypt(this string strText)
-        {
-            byte[] result = Encoding.Default.GetBytes(strText.Trim());
-            using MD5 md5 = new MD5CryptoServiceProvider();
-            byte[] output = md5.ComputeHash(result);
-            return BitConverter.ToString(output).Replace("-", "").ToUpper();
         }
 
         public static void SendMail(string msg, string subject)

@@ -6,5 +6,9 @@
     "username": "lishuai@ngd.neo.org",
     "password": "",
     "from": "neowish monitor"
-  }
+  },
+  "contact": [
+    "lishuai@ngd.neo.org",
+    "lishuai@onchain.com"
+  ]
 }
