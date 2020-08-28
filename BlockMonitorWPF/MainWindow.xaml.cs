@@ -15,6 +15,7 @@ namespace BlockMonitor
     public partial class MainWindow : Window
     {
         Timer t = new Timer(new TimeSpan(0, 5, 0).TotalMilliseconds);
+        string fineName = "log.txt";
 
         public MainWindow()
         {
@@ -54,6 +55,7 @@ namespace BlockMonitor
             Dispatcher.BeginInvoke(new Action(() => {
                 TextBox1.WriteLine($"{msg}, { DateTime.Now.ToString()}");
             }));
+            File.AppendAllText(fineName, msg + "\r\n");
             Tools.SendMail(msg, "NEO出块变慢❗");
             Status.BlockCount = height;
             Status.Time = DateTime.Now;
@@ -65,6 +67,7 @@ namespace BlockMonitor
             Dispatcher.BeginInvoke(new Action(() => {
                 TextBox1.WriteLine($"{msg}, { DateTime.Now.ToString()}");
             }));
+            File.AppendAllText(fineName, msg + "\r\n");
             Tools.SendMail(msg, "NEO停止出块❗❗❗");
             Tools.Call();
         }
@@ -73,9 +76,11 @@ namespace BlockMonitor
         {
             Status.BlockCount = height;
             Status.Time = DateTime.Now;
+            var msg = $"出块正常，平均出块时间{averageTime}秒 {height}, {DateTime.Now.ToString()}";
             Dispatcher.BeginInvoke(new Action(() => {
-                TextBox1.WriteLine($"出块正常，平均出块时间{averageTime}秒 {height}, {DateTime.Now.ToString()}");
+                TextBox1.WriteLine(msg);
             }));
+            File.AppendAllText(fineName, msg + "\r\n");
         }
 
         /// <summary>
