@@ -14,56 +14,51 @@ namespace BlockMonitor
 {
     public static class Tools
     {
-        public static string HttpPost(string Url, string postData, List<HttpHeader> HttpHeaders = null, int timeOut = 5000)
+        public static readonly string fileName = $"{DateTime.Now:yyyyMMdd}.txt";
+
+        public static string HttpPost(string Url, string postData, List<HttpHeader> HttpHeaders = null, int timeOut = 1000)
         {
-            try
+            WebRequest request = WebRequest.Create(Url);
+            request.Method = "POST";
+            request.ContentType = "application/x-www-form-urlencoded";
+            byte[] byteArray = Encoding.UTF8.GetBytes(postData);
+            request.ContentLength = byteArray.Length;
+            request.Timeout = timeOut;
+            if (HttpHeaders != null && HttpHeaders.Count > 0)
             {
-                WebRequest request = WebRequest.Create(Url);
-                request.Method = "POST";
-                request.ContentType = "application/x-www-form-urlencoded";
-                byte[] byteArray = Encoding.UTF8.GetBytes(postData);
-                request.ContentLength = byteArray.Length;
-                request.Timeout = timeOut;
-                if (HttpHeaders != null && HttpHeaders.Count > 0)
+                foreach (var item in HttpHeaders)
                 {
-                    foreach (var item in HttpHeaders)
+                    switch (item.Name)
                     {
-                        switch (item.Name)
-                        {
-                            case "Accept": break;
-                            case "Content-Type": request.ContentType = item.Value; break;
-                            default: request.Headers.Add(item.Name, item.Value); break;
-                        }
+                        case "Accept": break;
+                        case "Content-Type": request.ContentType = item.Value; break;
+                        default: request.Headers.Add(item.Name, item.Value); break;
                     }
                 }
-                Stream dataStream = request.GetRequestStream();
-                dataStream.Write(byteArray, 0, byteArray.Length);
-                dataStream.Close();
-                WebResponse response = request.GetResponse();
-                dataStream = response.GetResponseStream();
-                StreamReader reader = new StreamReader(dataStream);
-                string responseFromServer = reader.ReadToEnd();
-                reader.Close();
-                dataStream.Close();
-                response.Close();
-                return responseFromServer;
             }
-            catch (Exception e)
-            {
-                Log("HttpPost Exception: " + e.Message);
-                return null;
-            }
+            Stream dataStream = request.GetRequestStream();
+            dataStream.Write(byteArray, 0, byteArray.Length);
+            dataStream.Close();
+            WebResponse response = request.GetResponse();
+            dataStream = response.GetResponseStream();
+            StreamReader reader = new StreamReader(dataStream);
+            string responseFromServer = reader.ReadToEnd();
+            reader.Close();
+            dataStream.Close();
+            response.Close();
+            return responseFromServer;
         }
 
         public static void SendMail(string to, string from, string subject, string body, int times = 1)
         {
+            var config = JObject.Parse(File.ReadAllText("config.json"));
             try
             {
                 //邮件发送类 
                 using (MailMessage mail = new MailMessage())
                 {
                     //是谁发送的邮件 
-                    mail.From = new MailAddress("chris@neo.org", from);
+                    mail.From = new MailAddress(config["email"]["username"].ToString(), from);
                     //发送给谁 
                     mail.To.Add(to);
                     //标题 
@@ -84,7 +79,6 @@ namespace BlockMonitor
                         //指定发送方式 
                         smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
                         //指定登录名和密码 
-                        var config = JObject.Parse(File.ReadAllText("config.json"));
                         smtp.Credentials = new NetworkCredential(
                             config["email"]["username"].ToString(),
                             config["email"]["password"].ToString());
@@ -108,59 +102,13 @@ namespace BlockMonitor
             }
         }
 
-        public static void Call()
-        {
-            var config = JObject.Parse(File.ReadAllText("config.json"));
-            var callList = config["call"];
-            foreach (string item in callList)
-            {
-                Tools.CallAdmin(item);
-            }
-        }
-
-        private static void CallAdmin(string call)
-        {
-            var config = JObject.Parse(File.ReadAllText("config.json"));
-            var accountSid = config["yuntongxun"]["ACCOUNT SID"].ToString();
-            var authToken = config["yuntongxun"]["AUTH TOKEN"].ToString();
-            var appId = config["yuntongxun"]["AppID"].ToString();
-            var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
-            var SigParameter = $"{accountSid}{authToken}{timestamp}".MD5Encrypt();
-            var url = $"https://app.cloopen.com:8883/2013-12-26/Accounts/{accountSid}/Calls/LandingCalls?sig={SigParameter}";
-            var authorization = Convert.ToBase64String(Encoding.Default.GetBytes($"{accountSid}:{timestamp}"));
-            var headers = new List<HttpHeader>
-            {
-                new HttpHeader("Accept", "application/json"),
-                new HttpHeader("Content-Type", "application/json;charset=utf-8"),
-                new HttpHeader("Authorization", authorization)
-            };
-
-            var body = $"{{'mediaName':'warning.wav','to':'{call}','appId':'{appId}'}}";
-            var response = HttpPost(url, body, headers);
-            if (response == null) return;
-            var xml = new XmlDocument();
-            xml.LoadXml(response);
-            var responseBody = xml.SelectSingleNode("Response");
-            var statusCode = responseBody.SelectSingleNode("statusCode").InnerText;
-            var callSid = responseBody.SelectSingleNode("LandingCall").SelectSingleNode("callSid").InnerText;
-            var orderid = responseBody.SelectSingleNode("LandingCall").SelectSingleNode("orderId").InnerText;
-            if (statusCode == "000000")
-            {
-                Log($"{call} 呼叫成功\r\nstatusCode:{statusCode}\r\ncallSid:{callSid}\r\norderid:{orderid}");
-            }
-            else
-            {
-                Log($"呼叫失败\r\ncall:{{call}}\r\nstatusCode:{statusCode}\r\ncallSid:{callSid}\r\norderid:{orderid}");
-            }
-        }
-
         public static int GetBlockCount(string node)
         {
             string json;
             try
             {
-                json = Tools.HttpPost($"{node}", "{'jsonrpc': '2.0', 'method': 'getblockcount', 'params': [], 'id':   1}");
-                return (int)JObject.Parse(json)["result"] - 1;
+                json = HttpPost($"{node}", "{'jsonrpc': '2.0', 'method': 'getblockcount', 'params': [], 'id':   1}");
+                return (int)JObject.Parse(json)["result"];
             }
             catch (Exception)
             {
@@ -181,7 +129,31 @@ namespace BlockMonitor
             var config = JObject.Parse(File.ReadAllText("config.json"));
             foreach (var item in config["contact"])
             {
-                Tools.SendMail(item.ToString(), "BlockMonitor", subject, msg);
+                SendMail(item.ToString(), "BlockMonitor", subject, msg);
+            }
+        }
+
+        public static void WeChat(string msg)
+        {
+            try
+            {
+                HttpPost("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=ce226718-4e85-482f-99ee-18ed7876ed8a", $"{{\"msgtype\": \"text\",\"text\": {{\"content\": \"{msg}\",\"mentioned_list\":[\"@all\"]}}}}");
+            }
+            catch (Exception e)
+            {
+                Log("Error Tools 142: " + e.Message);
+            }
+        }
+
+        public static void WeChatTest(string msg)
+        {
+            try
+            {
+                HttpPost("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=de61b23c-1c05-4594-be29-20160445babc", $"{{\"msgtype\": \"text\",\"text\": {{\"content\": \"{msg}\",\"mentioned_list\":[\"@all\"]}}}}");
+            }
+            catch (Exception e)
+            {
+                Log("Error Tools 154: " + e.Message);
             }
         }
 
@@ -193,7 +165,7 @@ namespace BlockMonitor
 
         public static void Log(string msg)
         {
-            File.AppendAllText("log.txt", DateTime.Now + "\t" + msg + "\r\n");
+            File.AppendAllText(fileName, DateTime.Now + "\t" + msg + "\r\n");
         }
     }
 

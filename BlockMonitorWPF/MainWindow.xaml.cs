@@ -14,13 +14,18 @@ namespace BlockMonitor
     /// </summary>
     public partial class MainWindow : Window
     {
-        Timer t = new Timer(new TimeSpan(0, 5, 0).TotalMilliseconds);
-        string fineName = "log.txt";
+        readonly Timer t = new Timer(new TimeSpan(0, 5, 0).TotalMilliseconds);
+        readonly Timer t2 = new Timer(new TimeSpan(1, 0, 0).TotalMilliseconds);
 
         public MainWindow()
         {
             InitializeComponent();
             t.Elapsed += Monitor;
+            t.Start();
+            t2.Elapsed += ClearScreen;
+            t.Start();
+
+            Task.Run(() => { Monitor(this, null); });
         }
 
         private void Monitor(object sender, ElapsedEventArgs e)
@@ -34,53 +39,57 @@ namespace BlockMonitor
         /// </summary>
         private void AnalyseResults()
         {
-            var height = Status.HeightList.Max(p => p.BlockCount);
-            if (height == Status.BlockCount)
+            var currentCount = Status.BlockCountList.Max(p => p.BlockCount);
+            if (currentCount == Status.BlockCount)
             {
-                ConsensusStoped(height);
+                ConsensusStoped();
             }
             else
             {
-                var averageTime = Math.Round((DateTime.Now - Status.Time).TotalSeconds / (height - Status.BlockCount), 1);
+                var averageTime = Math.Round((DateTime.Now - Status.Time).TotalSeconds / (currentCount - Status.BlockCount), 1);
                 if (averageTime >= 35 && averageTime < 300)
-                    ConsensusSlow(averageTime, height);
+                    ConsensusSlow(averageTime, currentCount);
                 else
-                    ConsensusNormal(averageTime, height);
+                    ConsensusNormal(averageTime, currentCount);
             }
         }
 
         private void ConsensusSlow(double averageTime, int height)
         {
-            var msg = $"NEO出块变慢，最近5分钟平均出块时间为{averageTime}秒。<br />PS：异常区间：{Status.BlockCount}~{height}。";
-            Dispatcher.BeginInvoke(new Action(() => {
-                TextBox1.WriteLine($"{msg}, { DateTime.Now.ToString()}");
+            var msg = $"Neo出块变慢，最近5分钟平均出块时间为{averageTime}秒。PS：异常区间：{Status.BlockCount}~{height}。";
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                TextBox1.WriteLine($"{msg}, {DateTime.Now}");
             }));
-            File.AppendAllText(fineName, msg + "\r\n");
-            Tools.SendMail(msg, "NEO出块变慢❗");
+            File.AppendAllText(Tools.fileName, msg + "\r\n");
+            Tools.SendMail(msg, "Neo出块变慢❗");
+            Tools.WeChat(msg);
             Status.BlockCount = height;
             Status.Time = DateTime.Now;
         }
 
-        private void ConsensusStoped(int block)
+        private void ConsensusStoped()
         {
-            var msg = $"NEO停止出块，超过{Math.Round((DateTime.Now - Status.Time).TotalMinutes)}分钟未出块";
-            Dispatcher.BeginInvoke(new Action(() => {
-                TextBox1.WriteLine($"{msg}, { DateTime.Now.ToString()}");
+            var msg = $"Neo停止出块，超过{Math.Round((DateTime.Now - Status.Time).TotalMinutes)}分钟未出块";
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                TextBox1.WriteLine($"{msg}, { DateTime.Now}");
             }));
-            File.AppendAllText(fineName, msg + "\r\n");
-            Tools.SendMail(msg, "NEO停止出块❗❗❗");
-            Tools.Call();
+            File.AppendAllText(Tools.fileName, msg + "\r\n");
+            Tools.SendMail(msg, "Neo停止出块❗❗❗");
+            Tools.WeChat(msg);
         }
 
         private void ConsensusNormal(double averageTime, int height)
         {
             Status.BlockCount = height;
             Status.Time = DateTime.Now;
-            var msg = $"出块正常，平均出块时间{averageTime}秒 {height}, {DateTime.Now.ToString()}";
-            Dispatcher.BeginInvoke(new Action(() => {
+            var msg = $"出块正常，平均出块时间{averageTime}秒 {height}, {DateTime.Now}";
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
                 TextBox1.WriteLine(msg);
             }));
-            File.AppendAllText(fineName, msg + "\r\n");
+            File.AppendAllText(Tools.fileName, msg + "\r\n");
         }
 
         /// <summary>
@@ -88,40 +97,39 @@ namespace BlockMonitor
         /// </summary>
         private void GetNodesBlockCount()
         {
-            Status.HeightList.ForEach(p => {
-                p.Refresh();
-                Dispatcher.BeginInvoke(new Action(() => {
-                    TextBox1.WriteLine(p.ToString());
+            var config = JObject.Parse(File.ReadAllText("config.json"));
+            Status.BlockCountList.Clear();
+            config["nodes"].ToList().ForEach(p => Status.BlockCountList.Add(new NodeBlockCount(p.ToString(), 0)));
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                TextBox0.Clear();
+            }));
+            Status.BlockCountList.ForEach(node =>
+            {
+                node.GetBlockCount();
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    TextBox0.WriteLine(node.ToString());
                 }));
             });
-            Dispatcher.BeginInvoke(new Action(() => {
-                TextBox1.WriteLine($"{DateTime.Now.ToString()}\t {Status.HeightList.Max(p => p.BlockCount)}");
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                TextBox1.WriteLine($"{DateTime.Now}\t {Status.BlockCountList.Max(p => p.BlockCount)}");
             }));
         }
 
-        /// <summary>
-        /// 加载种子节点
-        /// </summary>
-        private void LoadSeedNodes()
+        private void Call_Click(object sender, RoutedEventArgs e)
         {
-            var config = JObject.Parse(File.ReadAllText("config.json"));
-            config["nodes"].ToList().ForEach(p => Status.HeightList.Add(new NodeBlockCount(p.ToString(), 0)));
+            Tools.WeChatTest("【测试】大家好");
         }
 
-        private void Start_Click(object sender, RoutedEventArgs e)
+        private void ClearScreen(object sender, ElapsedEventArgs e)
         {
-            t.Start();
-            Task.Run(() =>
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    StartMenu.IsEnabled = false;
-                }));
-                LoadSeedNodes();
-                GetNodesBlockCount();
-                Status.BlockCount = Status.HeightList.Max(p => p.BlockCount);
-                Status.Time = DateTime.Now;
-            });
+                TextBox1.Clear();
+                TextBox0.Clear();
+            }));
         }
     }
 }

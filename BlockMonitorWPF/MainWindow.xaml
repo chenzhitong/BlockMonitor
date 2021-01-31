@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BlockMonitor_WPF"
         mc:Ignorable="d"
-        Title="Block Monitor" Height="700" Width="600">
+        Title="Neo出块监控程序" Height="600" Width="800">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"></RowDefinition>
@@ -13,10 +13,12 @@
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition></ColumnDefinition>
+            <ColumnDefinition></ColumnDefinition>
         </Grid.ColumnDefinitions>
         <Menu Grid.Row="0" Grid.ColumnSpan="2">
-            <MenuItem Name="StartMenu" Header="Start" Click="Start_Click"></MenuItem>
+            <MenuItem Name="StartMenu2" Header="微信发消息测试" Click="Call_Click"></MenuItem>
         </Menu>
-        <TextBox Name="TextBox1" Grid.Row="1" Grid.Column="0"></TextBox>
+        <TextBox Name="TextBox0" Grid.Row="1" Grid.Column="0"></TextBox>
+        <TextBox Name="TextBox1" Grid.Row="1" Grid.Column="1"></TextBox>
     </Grid>
 </Window>

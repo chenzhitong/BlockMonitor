@@ -17,7 +17,7 @@ namespace BlockMonitor
             BlockCount = blockCount;
         }
 
-        public void Refresh()
+        public void GetBlockCount()
         {
             BlockCount = Tools.GetBlockCount(Node);
         }
