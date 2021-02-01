@@ -23,7 +23,7 @@ namespace BlockMonitor
             t.Elapsed += Monitor;
             t.Start();
             t2.Elapsed += ClearScreen;
-            t.Start();
+            t2.Start();
 
             Task.Run(() => { Monitor(this, null); });
         }
@@ -61,7 +61,7 @@ namespace BlockMonitor
             {
                 TextBox1.WriteLine($"{msg}, {DateTime.Now}");
             }));
-            File.AppendAllText(Tools.fileName, msg + "\r\n");
+            File.AppendAllText(Tools.LogFileName, msg + "\r\n");
             Tools.SendMail(msg, "Neo出块变慢❗");
             Tools.WeChat(msg);
             Status.BlockCount = height;
@@ -75,7 +75,7 @@ namespace BlockMonitor
             {
                 TextBox1.WriteLine($"{msg}, { DateTime.Now}");
             }));
-            File.AppendAllText(Tools.fileName, msg + "\r\n");
+            File.AppendAllText(Tools.LogFileName, msg + "\r\n");
             Tools.SendMail(msg, "Neo停止出块❗❗❗");
             Tools.WeChat(msg);
         }
@@ -89,7 +89,7 @@ namespace BlockMonitor
             {
                 TextBox1.WriteLine(msg);
             }));
-            File.AppendAllText(Tools.fileName, msg + "\r\n");
+            File.AppendAllText(Tools.LogFileName, msg + "\r\n");
         }
 
         /// <summary>

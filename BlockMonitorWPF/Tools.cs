@@ -14,7 +14,7 @@ namespace BlockMonitor
 {
     public static class Tools
     {
-        public static readonly string fileName = $"{DateTime.Now:yyyyMMdd}.txt";
+        public static string LogFileName = $"Log/{DateTime.Now:yyyyMMdd}.txt";
 
         public static string HttpPost(string Url, string postData, List<HttpHeader> HttpHeaders = null, int timeOut = 1000)
         {
@@ -165,7 +165,7 @@ namespace BlockMonitor
 
         public static void Log(string msg)
         {
-            File.AppendAllText(fileName, DateTime.Now + "\t" + msg + "\r\n");
+            File.AppendAllText(LogFileName, DateTime.Now + "\t" + msg + "\r\n");
         }
     }
 
